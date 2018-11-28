@@ -38,7 +38,7 @@ The above example will render the following valid HTML5 code:
     <title>Hello world!</title>
   </head>
   <body id="main">
-    <h1 class="w3-blue">Hello world!</p>
+    <h1 class="w3-blue">Hello world!</h1>
     <p>Yet another lazy method to create valid HTML5!</p>
   </body>
 </html>
