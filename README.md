@@ -22,7 +22,7 @@ $html->head()->title($page->title);
 
 // add some more page content
 $body = $html->body()->id('main');
-$body->h1($page->title)->class('w3-blue');
+$body->h1($page->title)->id($page->name)->class('w3-blue');
 $body->append($page->content);
 
 // render document
@@ -38,10 +38,14 @@ The above example will render the following valid HTML5 code:
     <title>Hello world!</title>
   </head>
   <body id="main">
-    <h1 class="w3-blue">Hello world!</h1>
+    <h1 id="home" class="w3-blue">Hello world!</h1>
     <p>Yet another lazy method to create valid HTML5!</p>
   </body>
 </html>
 ```
 
 See the [Summoning](https://github.com/arnobaer/Summoning) project on GitHub for detailed instructions.
+
+## License
+
+SummonWire and Summoning are licensed under the GNU General Public License Version 3.
