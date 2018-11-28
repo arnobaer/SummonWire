@@ -4,7 +4,7 @@ ProcessWire module providing an API for [Summoning](https://github.com/arnobaer/
 
 ## Installation
 
-See ProcessWire module install [instructions](http://modules.processwire.com/install-uninstall/).
+See ProcessWire module [install](http://modules.processwire.com/install-uninstall/) instructions.
 
 ## Usage
 
