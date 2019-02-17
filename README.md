@@ -8,7 +8,7 @@ See ProcessWire module [install](http://modules.processwire.com/install-uninstal
 
 ## Usage
 
-Include the `SummonWire` module and call method `create` to create new Summoning `Node` instances. 
+Include the `SummonWire` module and call method `create` to create new Summoning `Node` instances.
 
 ```php
 // create document root node

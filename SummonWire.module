@@ -3,7 +3,7 @@
 /**
  *
  * SummonWire - Summoning HTML5 code generator module for ProcessWire.
- * Copyright (C) 2018  Bernhard Arnold <bernhard.arnold@burgried.at>
+ * Copyright (C) 2018-2019  Bernhard Arnold <bernhard.arnold@burgried.at>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,13 +36,13 @@ class SummonWire extends WireData implements Module {
 			'title' => 'SummonWire',
 
 			// version number
-			'version' => '0.3.0',
+			'version' => '0.4.0',
 
 			// summary is brief description of what this module is
 			'summary' => 'Provides API to Summoning HTML5 code generator.',
 
 			// Optional URL to more information about the module
-			'href' => 'https://github.com/SummonWire',
+			'href' => 'https://github.com/arnobaer/SummonWire.git',
 
 			// singular=true: indicates that only one instance of the module is allowed.
 			// This is usually what you want for modules that attach hooks.

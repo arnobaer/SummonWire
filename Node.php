@@ -1,7 +1,7 @@
 <?php
 
 /* Summoning - Yet another HTML5 code generator.
- * Copyright (C) 2013,2018  Bernhard Arnold <bernhard.arnold@burgried.at>
+ * Copyright (C) 2013-2019  Bernhard Arnold <bernhard.arnold@burgried.at>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,15 +17,35 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Version 0.3.0
+// Version 0.4.0
 
 namespace Summoning;
 
-class Node {
-	const DocType = 'html'; // HTML 5
+/**
+ * Returns true if string starts with $needle.
+ */
+function str_startswith($haystack, $needle) {
+	return 0 == strlen($needle)
+		|| false !== strrpos($haystack, $needle, -strlen($haystack));
+}
+
+/**
+ * Rules for elements and attributes.
+ */
+class Rules {
+	/** HTML doctype */
+	const DocType = 'html';
+
+	/** Prefix for ambiguous attribute calls */
 	const AttributeEscape = '_';
+
+	/** Prefix for template calls */
 	const TemplatePrefix = 'tpl_';
+
+	/** Defines the HTML5 root element */
 	const RootElement = 'html';
+
+	/** List containing valid elements */
 	const Elements = array(
 		'a', 'abbr', 'address', 'area', 'article', 'aside', 'audio',
 		'b', 'base', 'bdi', 'bdo', 'blockquote', 'body', 'br', 'button',
@@ -48,10 +68,14 @@ class Node {
 		'var', 'video',
 		'wbr',
 	);
+
+	/** List containing void elements (<tag />) */
 	const VoidElements = array(
 		'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
 		'keygen', 'link', 'meta', 'param', 'source', 'track', 'wbr',
 	);
+
+	/** Map containing valid attributes with element context */
 	const Attributes = array(
 		'accept' => array('input'),
 		'accept-charset' => array('form'),
@@ -136,6 +160,7 @@ class Node {
 		'width' => array('canvas', 'embed', 'iframe', 'img', 'input', 'object', 'video'),
 		'wrap' => array('textarea'),
 	);
+	/** List containing valid global attributes (to be used with any element) */
 	const GlobalAttributes = array(
 		'accesskey',
 		// 'aria-*', // WAI ARIA, handled separately
@@ -155,11 +180,20 @@ class Node {
 		'title',
 		'translate',
 	);
+}
+
+/**
+ * HTML5 element node class.
+ */
+class Node extends Rules {
 	protected $_tag;
 	protected $_parent;
 	protected $_attrs;
 	protected $_children;
 	protected static $_templates = array();
+
+	/** Constructor requiring tag name and optional list of child elements
+	 * (nodes and/or strings) */
 	public function __construct($tag, $children=array()) {
 		if (!$this->_is_valid_tag($tag)) {
 			throw new \Exception("Invalid element name <{$tag}>");
@@ -169,22 +203,22 @@ class Node {
 		$this->_attrs = array();
 		$this->_children = $children;
 	}
+
+	/** Dynamic method handler */
 	public function __call($method, $args) {
 		$context = $method;
-		// Handle multiple argument method append(arg, ...)
-		if ($context == 'append') {
-			foreach ($args as $arg) {
-				$this->_append($arg);
-			}
-			return $this;
-		}
 		// Test for valid template
 		if ($this->_is_valid_template($context)) {
 			$closure = self::$_templates[$context];
 			array_unshift($args, $this); // prepend context
 			$node = call_user_func_array($closure, $args);
-			$this->append($node);
-			return $node;
+			if ($node instanceof Node) {
+				if (null === $node->parent()) {
+					$this->append($node);
+				}
+				return $node;
+			}
+			return $this;
 		}
 		// Test for valid element
 		if ($this->_is_valid_tag($context)) {
@@ -193,7 +227,7 @@ class Node {
 			return $node;
 		}
 		// Un-escape clashing attribute names ('_title' -> 'title')
-		if (substr($context, 0, strlen(self::AttributeEscape)) == self::AttributeEscape) {
+		if (str_startswith($context, self::AttributeEscape)) {
 			$context = substr($context, strlen(self::AttributeEscape));
 		}
 		// Accept attributes with escaped hyphens ('http_equiv' -> 'http-equiv')
@@ -207,55 +241,97 @@ class Node {
 		$message = "Invalid attribute '{$context}' for element <{$this->_tag}>";
 		throw new \Exception($message);
 	}
+
+	/** Append any number of nodes or strings, sets nodes parent to this. */
+	public function append(...$nodes) {
+		foreach ($nodes as $node) {
+			if ($node instanceof Node) {
+				$node->_parent = $this;
+			}
+		}
+		$this->_children = array_merge($this->_children, $nodes);
+		return $this;
+	}
+
+	/** Prepends any number of nodes or strings, sets nodes parent to this. */
+	public function prepend(...$nodes) {
+		foreach ($nodes as $node) {
+			if ($node instanceof Node) {
+				$node->_parent = $this;
+			}
+		}
+		$this->_children = array_merge($nodes, $this->_children);
+		return $this;
+	}
+
+	/** Returns node's parent node or null if no parent assigned */
 	public function parent() {
 		return $this->_parent;
 	}
-	public function create($tag) {
-		return new Node($tag); // create a node without a parent
+
+	/** Create a new independed node (no parent) */
+	public static function create($tag) {
+		return new Node($tag); // create a node without parent
 	}
+
+	/** Register template function */
 	public function register($name, $callback) {
 		$key = join('', array(self::TemplatePrefix, "$name"));
 		self::$_templates[$key] = $callback;
 	}
+
+	/** Render string representation */
 	public function toHtml() {
 		return $this->_render_tag();
 	}
+
+	/** Render string representation */
 	public function __toString() {
 		return $this->_render_tag();
 	}
+
+	/** Check if name is a template (using template prefix) */
 	protected function _is_valid_template($name) {
-		return substr($name, 0, strlen(self::TemplatePrefix)) == self::TemplatePrefix;
+		return str_startswith($name, self::TemplatePrefix);
 	}
+
+	/** Check if tag is a valid element */
 	protected function _is_valid_tag($tag) {
 		return in_array($tag, self::Elements);
 	}
+
+	/** Check if node the rote node. */
 	protected function _is_root_tag() {
-		return (self::RootElement == $this->_tag); // document root element
+		return (self::RootElement == $this->_tag);
 	}
+
+	/** Check if attribute is valid */
 	protected function _is_valid_attr($attr) {
 		return $this->_is_valid_global_attr($attr)
 			|| $this->_is_valid_attr_tag($attr);
 	}
+
+	/** Check if attribute is a global attribute */
 	protected function _is_valid_global_attr($attr) {
 		return in_array($attr, self::GlobalAttributes)
-			|| substr($attr, 0, 5) == 'aria-' // workaround to accept 'aria-*' attributes
-			|| substr($attr, 0, 5) == 'data-' // workaround to accept 'data-*' attributes
-			|| substr($attr, 0, 2) == 'on'; // workaround for 'on<event>' attributes
+			// workaround to accept 'aria-*', 'data-*' and 'on*' attributes
+			|| str_startswith($attr, 'aria-')
+			|| str_startswith($attr, 'data-')
+			|| str_startswith($attr, 'on');
 	}
+
+	/** Check if attribute is valid with tag */
 	protected function _is_valid_attr_tag($attr) {
 		return array_key_exists($attr, self::Attributes)
 			&& in_array($this->_tag, self::Attributes[$attr]);
 	}
-	protected function _append($node) {
-		if ($node instanceof Node) {
-			$node->_parent = $this;
-		}
-		$this->_children[] = $node;
-		return $this;
-	}
+
+	/** Render HTML doctype. */
 	protected function _render_doctype() {
 		return join('', array('<!DOCTYPE ', self::DocType, '>', PHP_EOL));
 	}
+
+	/** Render tag and its children */
 	protected function _render_tag() {
 		$tag = $this->_tag;
 		$attrs = $this->_render_attrs();
@@ -271,6 +347,8 @@ class Node {
 		}
 		return join('', $result);
 	}
+
+	/** Render list of attributes */
 	protected function _render_attrs() {
 		$pairs = array();
 		$attrs = $this->_attrs;
